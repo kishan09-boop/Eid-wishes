@@ -18,7 +18,7 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            overflow-x: hidden; /* Horizontal scroll ko rokne ke liye */
+            overflow: hidden;
             position: relative;
         }
 
@@ -38,7 +38,6 @@
             position: relative;
             z-index: 2;
             border: 5px solid #DAA520;
-            margin-bottom: 20px; /* Ads ke liye thoda space */
         }
         #mainImage {
             max-width: 100%;
@@ -49,13 +48,14 @@
         }
         #greetingMessage {
             font-family: 'Georgia', 'Times New Roman', Times, serif;
-            font-size: 2.5em;
+            font-size: 2.2em; /* Adjusted for potentially longer message */
             font-weight: bold;
             color: #8B0000;
             margin-bottom: 30px;
             display: none;
             animation: fadeInZoomDrop 2s forwards;
             text-shadow: 2px 2px 4px rgba(218,165,32,0.7);
+            word-wrap: break-word;
         }
 
         @keyframes fadeInZoomDrop {
@@ -111,6 +111,7 @@
             margin-right: 8px; 
         }
 
+
         #generatedLinkContainer {
             margin-top: 25px;
             word-break: break-all;
@@ -141,19 +142,6 @@
             pointer-events: none;
         }
 
-        /* Ad Container Style */
-        #adContainer {
-            margin-top: 20px; /* Space above ad */
-            margin-bottom: 20px; /* Space below ad */
-            text-align: center; /* Center the ad if it's smaller than container */
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 3; /* Ads ko container ke upar rakhne ke liye (agar overlap ho) */
-            position: relative;
-        }
-
     </style>
 </head>
 <body>
@@ -180,22 +168,6 @@
             <a id="generatedLink" href="#" target="_blank"></a>
         </div>
     </div>
-
-    <!-- =========== ADVERTISEMENT PLACEMENT START =========== -->
-    <div id="adContainer">
-        <script type="text/javascript">
-            atOptions = {
-                'key' : 'd2ec8f7eb6ddea1933ffb15b23fda8a0',
-                'format' : 'iframe',
-                'height' : 60,
-                'width' : 468,
-                'params' : {}
-            };
-        </script>
-        <script type="text/javascript" src="//www.highperformanceformat.com/d2ec8f7eb6ddea1933ffb15b23fda8a0/invoke.js"></script>
-    </div>
-    <!-- =========== ADVERTISEMENT PLACEMENT END =========== -->
-
 
     <script>
         const greetingElement = document.getElementById('greetingMessage');
@@ -284,33 +256,47 @@
         let fireworkInterval;
         function loop() {
             requestAnimationFrame(loop);
-            if (ctx) { // Check if ctx is defined
-                ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; 
-                ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalCompositeOperation = 'lighter';
-                let i = fireworks.length; while(i--) { fireworks[i].draw(); fireworks[i].update(i); }
-                let j = particles.length; while(j--) { particles[j].draw(); particles[j].update(j); }
-            }
+            ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalCompositeOperation = 'lighter';
+            let i = fireworks.length; while(i--) { fireworks[i].draw(); fireworks[i].update(i); }
+            let j = particles.length; while(j--) { particles[j].draw(); particles[j].update(j); }
         }
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const senderName = urlParams.get('sender');
+            const senderNameParam = urlParams.get('sender');
 
-            if (senderName) {
-                greetingElement.innerHTML = `Happy Eid Mubarak from ${decodeURIComponent(senderName)}! <span style="font-size:0.8em;">🌙✨</span>`;
+            // Clear previous generated link display
+            linkTextElement.textContent = "";
+            generatedLinkElement.href = "#";
+            generatedLinkElement.textContent = "";
+            // nameInputElement.value = ""; // Input field is typically empty on load anyway
+
+            if (senderNameParam) {
+                const decodedSenderName = decodeURIComponent(senderNameParam);
+                
+                // Safely set greeting message
+                greetingElement.textContent = `Happy Eid Mubarak from ${decodedSenderName}! `;
+                const emojiSpan = document.createElement('span');
+                emojiSpan.style.fontSize = "0.8em";
+                emojiSpan.innerHTML = "🌙✨"; // Static HTML, so safe
+                greetingElement.appendChild(emojiSpan);
+                
                 greetingElement.style.display = 'block';
                 mainImageElement.style.display = 'none';
+
+                // The input form elements are always visible, allowing the current viewer to create their own wish.
+                
                 if (typeof loop === "function" && typeof launchAutomaticFirework === "function") {
-                    if (canvas && ctx) { // Ensure canvas is ready
-                         loop(); 
-                        fireworkInterval = setInterval(launchAutomaticFirework, 250); 
-                        setTimeout(() => clearInterval(fireworkInterval), 30000);
-                    }
+                    loop(); 
+                    fireworkInterval = setInterval(launchAutomaticFirework, 250); 
+                    setTimeout(() => clearInterval(fireworkInterval), 30000); 
                 }
             } else {
                 mainImageElement.style.display = 'block';
                 greetingElement.style.display = 'none';
                 if(fireworkInterval) clearInterval(fireworkInterval); 
+                // Input form is visible for creating the first wish
             }
         };
 
@@ -322,6 +308,8 @@
             }
 
             const encodedName = encodeURIComponent(name);
+            // This is the crucial part: baseUrl uses only origin and pathname,
+            // ensuring any existing query parameters (like an old 'sender') are discarded.
             const baseUrl = window.location.origin + window.location.pathname;
             const shareableLink = `${baseUrl}?sender=${encodedName}`;
 
@@ -329,6 +317,38 @@
             generatedLinkElement.href = shareableLink;
             generatedLinkElement.textContent = shareableLink;
             
+            // --- START: UX Improvement - Update main greeting on current page ---
+            greetingElement.innerHTML = ''; // Clear previous content
+            const textPart1 = document.createTextNode("Aapka sandesh ");
+            const senderNameBold = document.createElement('b');
+            senderNameBold.style.color = '#006400';
+            senderNameBold.textContent = name; // Safely set user-provided name
+            const textPart2 = document.createTextNode(" ki taraf se Eid Mubarak! ");
+            const moonEmojiSpan = document.createElement('span');
+            moonEmojiSpan.style.fontSize = "0.8em"; // Match original emoji style
+            moonEmojiSpan.innerHTML = "🌙✨"; // Static HTML, safe
+            
+            const brElement = document.createElement('br');
+            const instructionSmall = document.createElement('small');
+            instructionSmall.style.fontSize = "0.7em"; // Smaller text for instruction
+            instructionSmall.textContent = "Neeche diye gaye link ko share karein.";
+
+            greetingElement.appendChild(textPart1);
+            greetingElement.appendChild(senderNameBold);
+            greetingElement.appendChild(textPart2);
+            greetingElement.appendChild(moonEmojiSpan);
+            greetingElement.appendChild(brElement);
+            greetingElement.appendChild(instructionSmall);
+
+            greetingElement.style.display = 'block'; // Ensure it's visible
+            if (!greetingElement.classList.contains('fadeInZoomDrop')) { // Re-trigger animation if needed
+                 greetingElement.style.animation = 'none';
+                 greetingElement.offsetHeight; /* trigger reflow */
+                 greetingElement.style.animation = null; 
+            }
+            mainImageElement.style.display = 'none'; // Keep image hidden
+            // --- END: UX Improvement ---
+
             const shareTitle = 'Eid Mubarak Wishes!';
             const shareText = `${name} aapko Eid Mubarak keh rahe hain! 🌙✨ Yeh pyara sa sandesh dekhein:`;
 
@@ -347,6 +367,7 @@
                         copyLinkToClipboard(shareableLink, "Share suvidha mein samasya aayi.");
                     } else {
                         console.log('Share aborted by user.');
+                        // User aborted, but link is generated. Let them copy it.
                         copyLinkToClipboard(shareableLink, "Aapne share cancel kar diya hai.");
                     }
                 }
